@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Queue Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 1em;
+            text-align: center;
+        }
+
+        main {
+            padding: 2em;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 600px;
+            margin: 20px auto;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        select {
+            width: 100%;
+            padding: 0.5em;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: white;
+            padding: 0.5em 1em;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #demo {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Patient Queue Management</h1>
+    </header>
+    <main>
+        <label for="travelMode">Select Travel Mode:</label>
+        <select id="travelMode" name="travelMode">
+            <option value="walk">Walk</option>
+            <option value="bike">Bike</option>
+            <option value="car">Car</option>
+        </select>
+        <button type="button" onclick="startCheckingIn()">Check In</button>
+        <button id="checkOutButton" onclick="stopCheckingIn()" style="display:none;">Check Out</button>
+        <div id="demo"></div>
+    </main>
+
+    <script>
+        const x = document.getElementById("demo");
+        let watchId;
+        let intervalId;
+        let iterationCount = 0;
+
+        function haversineDistance(lat1, lon1, lat2, lon2) {
+            // Radius of the Earth in kilometers
+            const R = 6371;
+
+            // Convert latitude and longitude from degrees to radians
+            const dLat = (lat2 - lat1) * (Math.PI / 180);
+            const dLon = (lon2 - lon1) * (Math.PI / 180);
+
+            // Calculate Haversine distance
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            const distance = R * c;
+
+            return distance;
+        }
+
+        function startCheckingIn() {
+            if (navigator.geolocation) {
+                x.innerHTML = ""; // Clear existing content
+                watchId = navigator.geolocation.watchPosition(showPosition, handleError, { enableHighAccuracy: true });
+                intervalId = setInterval(() => {
+                    navigator.geolocation.getCurrentPosition(showPosition, handleError, { enableHighAccuracy: true });
+                }, 60000); // Fetch location every 30 seconds
+
+                document.getElementById("checkInButton").style.display = "none";
+                document.getElementById("checkOutButton").style.display = "block";
+            } else {
+                x.innerHTML = "Geolocation is not supported by this browser.";
+            }
+        }
+
+        function stopCheckingIn() {
+            navigator.geolocation.clearWatch(watchId);
+            clearInterval(intervalId);
+            document.getElementById("checkInButton").style.display = "block";
+            document.getElementById("checkOutButton").style.display = "none";
+        }
+
+        function showPosition(position) {
+            const userLat = position.coords.latitude;
+            const userLon = position.coords.longitude;
+
+            const destinationLat = 12.8361;  // Replace with your destination's latitude
+            const destinationLon = 80.2295; // Replace with your destination's longitude
+
+            const distance = haversineDistance(userLat, userLon, destinationLat, destinationLon);
+
+            const locationInfo = document.createElement("p");
+            locationInfo.innerHTML = `Latitude: ${userLat.toFixed(6)}, Longitude: ${userLon.toFixed(6)}, Distance to Destination: ${distance.toFixed(2)} km`;
+
+            x.appendChild(locationInfo);
+        }
+
+        function handleError(error) {
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    x.innerHTML = "User denied the request for Geolocation.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    x.innerHTML = "Location information is unavailable.";
+                    break;
+                case error.TIMEOUT:
+                    x.innerHTML = "The request to get user location timed out.";
+                    break;
+                case error.UNKNOWN_ERROR:
+                    x.innerHTML = "An unknown error occurred.";
+                    break;
+            }
+        }
+    </script>
+</body>
+
+</html>
